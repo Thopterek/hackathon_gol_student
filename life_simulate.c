@@ -7,7 +7,7 @@
 #pragma(pop)
 
 #pragma warning(disable :5045)
-
+#pragma warning(disable :4711)
 typedef struct
 {
   uint32_t x;
@@ -70,82 +70,98 @@ typedef struct
   y 0 x 1, index 1;
 */
 
-uint32_t counting_cells(uint8_t *grid, uint32_t cc, uint32_t whole_grid) {
-  uint32_t counter = 0;
-  if (cc > 3 && cc < whole_grid - 4) {
-    uint32_t tmp = cc - 4;
-    while (tmp < cc) {
-    if (grid[tmp] == 1)
-      counter++;
-    tmp++;
-    }
-    tmp = cc + 1;
-    while (tmp < cc + 4) {
-      if (grid[tmp] == 1)
-        counter++;
-      tmp++;
-    }
+uint32_t check_left(uint32_t cc, uint32_t row_size) {
+  uint32_t border = 0;
+  uint32_t range = row_size + 1;
+  while (cc > border) {
+    border += range;
   }
-  else if (cc <= 3) {
-    uint32_t tmp = whole_grid - (4 - cc);
-    while (tmp < whole_grid) {
-      if (grid[tmp] == 1)
-        counter++;
-      tmp++;
-    }
-    tmp = 0;
-    while (tmp < cc) {
-      if (grid[tmp] == 1)
-        counter++;
-      tmp++;
-    }
-    tmp = cc + 1;
-    while (tmp < cc + 4) {
-      if (grid[tmp] == 1)
-        counter++;
-      tmp++;
-    }
+  border -= range;
+  return (border);
+}
+
+uint32_t check_right(uint32_t cc, uint32_t row_size) {
+  uint32_t border = row_size;
+  uint32_t range = row_size + 1;
+  while (cc > border) {
+    border += range;
+  }
+  return (border);
+}
+
+
+uint32_t counting_cells(uint8_t *grid, uint32_t cc, uint32_t whole_grid, uint32_t grid_dim) {
+  uint32_t counter = 0;
+  uint32_t row_size = grid_dim - 1;
+  // check left
+  if (cc > check_left(cc, row_size)) {
+    if (grid[cc - 1] == 1)
+      counter++;
   }
   else {
-    uint32_t tmp = cc - 4;
-    while (tmp < cc) {
-    if (grid[tmp] == 1)
+    if (grid[cc + row_size] == 1)
       counter++;
-    tmp++;
-    }
-    if (cc < whole_grid - 1) {
-      tmp = cc + 1;
-    }
-    uint8_t checked = 0;
-    while (tmp < whole_grid) {
-      if (grid[tmp] == 1)
-        counter++;
-      checked++;
-      tmp++;
-    }
-    tmp = 0;
-    while (checked < 4) {
-      if (grid[tmp] == 1)
-        counter++;
-      tmp++;
-      checked++;
-    }
+  }
+  // check right
+  if (cc < check_right(cc, row_size)) {
+    if (grid[cc + 1] == 1)
+      counter++;
+  }
+  else {
+    if (grid[cc - row_size] == 1)
+      counter++;
+  }
+  // check up
+  if (cc >= grid_dim) {
+    if (grid[cc - grid_dim] == 1)
+      counter++;
+  }
+  else {
+    if (grid[(whole_grid - grid_dim) + cc] == 1)
+      counter++;
+  }
+  // check down
+  if (cc <= whole_grid - grid_dim) {
+    if (grid[cc + grid_dim] == 1)
+      counter++;
+  }
+  else {
+    if (grid[(cc + grid_dim) - whole_grid] == 1)
+      counter++;
   }
   return (counter);
+}
+
+uint32_t get_fucked(uint32_t grid_dim, uint8_t *grid, uint32_t cc) {
+  int result = 0;
+  int i = cc;
+  while (grid[i]) {
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        if (dx == 0 && dy == 0)
+          continue;
+        int nx = (i % grid_dim) + dx;
+        int ny = (i / grid_dim) + dy;
+        result += grid[ny * grid_dim + nx];
+      }
+    }
+    i++;
+  }
+  return (result);
 }
 
 uint8_t *simulate_life(uint32_t grid_dim, start_coord_t *initial_points, uint32_t initial_point_count)
 {
   const uint32_t whole_grid = grid_dim * grid_dim;
   // static int first = 0;
-  uint8_t *grid = NULL;
+  static uint8_t *grid = NULL;
+  uint32_t cc = 0;
   if (grid == NULL) {
     grid = VirtualAlloc(NULL, whole_grid * sizeof(uint8_t), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-  }
-  uint32_t cc = 0;
-  while (cc < initial_point_count) {
-    grid[initial_points[cc].y * grid_dim + initial_points[cc].x] = 1;
-    cc++;
+    while (cc < initial_point_count) {
+      grid[initial_points[cc].y * grid_dim + initial_points[cc].x] = 1;
+      cc++;
+    }
   }
   cc = 0;
   uint8_t to_keep[1024] = {0};
@@ -153,8 +169,9 @@ uint8_t *simulate_life(uint32_t grid_dim, start_coord_t *initial_points, uint32_
     /*
       Checking the living cells
     */
+    uint32_t counter = counting_cells(grid, cc, whole_grid, grid_dim); 
+    // uint32_t counter = get_fucked(grid_dim, grid, cc);
     if (grid[cc] == 1) {
-      uint32_t counter = counting_cells(grid, cc, whole_grid); 
       if (counter == 2 || counter == 3) 
         to_keep[cc] = 1;
     }
@@ -162,7 +179,7 @@ uint8_t *simulate_life(uint32_t grid_dim, start_coord_t *initial_points, uint32_
       Checking the dead ones
     */
     else {
-      if (counting_cells(grid, cc, whole_grid) == 3)
+      if (counter == 3)
         to_keep[cc] = 1;
     }
     cc++;
