@@ -71,12 +71,81 @@ typedef struct
 */
 uint8_t *simulate_life(uint32_t grid_dim, start_coord_t *initial_points, uint32_t initial_point_count)
 {
-  uint8_t *grid = VirtualAlloc(NULL, grid_dim * grid_dim * sizeof(uint8_t), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+  const uint32_t whole_grid = grid_dim * grid_dim;
+  uint8_t *grid = VirtualAlloc(NULL, whole_grid * sizeof(uint8_t), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
   uint32_t cc = 0;
   while (cc < initial_point_count) {
     grid[initial_points[cc].y * grid_dim + initial_points[cc].x] = 1;
     cc++;
   }
+  cc = 0;
+  uint8_t to_keep[256] = {0};
+  while (cc < whole_grid) {
+    /*
+      Checking the living cells
+    */
+    if (grid[cc] == 1) {
+      uint32_t counter = 0;
+      if (cc > 3 && cc < whole_grid - 4) {
+        uint32_t tmp = cc - 4;
+        while (tmp < cc) {
+          if (grid[tmp] == 1)
+            counter++;
+          tmp++;
+        }
+        tmp = cc + 1;
+        while (tmp < cc + 4) {
+          if (grid[tmp] == 1)
+            counter++;
+          tmp++;
+        }
+        if (counter >= 2 && counter <= 3) {
+          to_keep[cc] = 1;
+        }
+      }
+    }
+    /*
+      Checking the dead ones
+    */
+    else {
+      uint32_t another_c = 0;
+      if (cc > 3 && cc < whole_grid - 4) {
+        uint32_t ano_tmp = cc - 4;
+        while (ano_tmp < cc) {
+          if (grid[ano_tmp] == 1)
+            another_c++;
+          ano_tmp++;
+        }
+        ano_tmp = cc + 1;
+        while (ano_tmp < cc + 4) {
+          if (grid[ano_tmp] == 1)
+            another_c++;
+          ano_tmp++;
+        }
+        if (another_c == 3)
+          to_keep[cc] = 1;
+      }
+    }
+    cc++;
+  }
+  cc = 0;
+  while (cc < whole_grid) {
+    grid[cc] = to_keep[cc];
+    cc++;
+  }
+  // while (cc < initial_point_count) {
+  //   uint32_t inner = 0;
+  //   uint32_t temp_x = initial_points[cc].x;
+  //   uint32_t temp_y = initial_points[cc].y;
+  //   while (inner < initial_point_count) {
+  //     uint32_t compare_x = initial_points[inner].x;
+  //     uint32_t compare_y = initial_points[inner].y;
+  //     if (compare_x != temp_x && compare_y != temp_y) {
+        
+  //     }
+  //   }
+  //   cc++;
+  // }
   // uint8_t slow[16][16] = {0};
   // uint32_t cc = 0;
   // while (cc < initial_point_count) {
