@@ -8,6 +8,7 @@
 
 #pragma warning(disable :5045)
 #pragma warning(disable :4711)
+
 typedef struct
 {
   uint32_t x;
@@ -121,7 +122,7 @@ uint32_t counting_cells(uint8_t *grid, uint32_t cc, uint32_t whole_grid, uint32_
       counter++;
   }
   // check down
-  if (cc <= whole_grid - grid_dim) {
+  if (cc < whole_grid - grid_dim) {
     if (grid[cc + grid_dim] == 1)
       counter++;
   }
@@ -187,6 +188,7 @@ uint8_t *simulate_life(uint32_t grid_dim, start_coord_t *initial_points, uint32_
   cc = 0;
   while (cc < whole_grid) {
     grid[cc] = to_keep[cc];
+    // to_keep[cc] = 0;
     cc++;
   }
   return (grid);
